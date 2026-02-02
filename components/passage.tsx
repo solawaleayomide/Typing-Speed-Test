@@ -7,9 +7,19 @@ type PassageProps = {
 export default function Passage({ text }: PassageProps) {
   const [input, setInput] = useState("");
   const [cursorIndex, setCursorIndex] = useState(0);
+  const [errors, setErrors] = useState<Set<number>>(new Set());
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
     const key = e.key;
+
+    // BACKSPACE
+    if (key === "Backspace") {
+      if (cursorIndex === 0) return;
+
+      setInput((prev) => prev.slice(0, -1));
+      setCursorIndex((prev) => prev - 1);
+      return;
+    }
 
     // Ignore non-character keys for now
     if (key.length !== 1) return;
@@ -17,14 +27,28 @@ export default function Passage({ text }: PassageProps) {
     // Prevent typing beyond passage length
     if (cursorIndex >= text.length) return;
 
+    // Record error if incorrect (and never remove it)
+    const expectedChar = text[cursorIndex];
+
+    if (key !== expectedChar) {
+      setErrors((prev) => {
+        const next = new Set(prev);
+        next.add(cursorIndex);
+        return next;
+      });
+    }
+
     setInput((prev) => prev + key);
     setCursorIndex((prev) => prev + 1);
   }
 
   function getCharStatus(index: number) {
-    if (index >= input.length) return "pending";
-    if (input[index] === text[index]) return "correct";
-    return "incorrect";
+    if (index < input.length) {
+      if (errors.has(index)) return "incorrect";
+      return "correct";
+    }
+
+    return "pending";
   }
 
   return (
