@@ -1,11 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
+const Passage = dynamic(() => import("@/components/passage"), {
+  ssr: false,
+});
+
 import { Controls } from "@/components/controls";
 import { Header } from "@/components/header";
-import { Passage } from "@/components/passage";
-import { Results } from "@/components/results";
+// import { Passage } from "@/components/passage";
 import { StatsBar } from "@/components/stats-bar";
 import { useState } from "react";
+
+import passages from "@/data.json";
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
 export type Mode = "Timed (60s)" | "Passage";
@@ -13,6 +20,27 @@ export type Mode = "Timed (60s)" | "Passage";
 export default function Page() {
   const [difficulty, setDifficulty] = useState<Difficulty>("Hard");
   const [mode, setMode] = useState<Mode>("Timed (60s)");
+
+  const difficultyMap = {
+    Easy: "easy",
+    Medium: "medium",
+    Hard: "hard",
+  } as const;
+
+  const [passageIndex, setPassageIndex] = useState(() => {
+    const key = difficultyMap[difficulty];
+    return Math.floor(Math.random() * passages[key].length);
+  });
+
+  function handleDifficultyChange(next: Difficulty) {
+    const key = difficultyMap[next];
+    const index = Math.floor(Math.random() * passages[key].length);
+
+    setDifficulty(next);
+    setPassageIndex(index);
+  }
+
+  const passage = passages[difficultyMap[difficulty]][passageIndex];
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col items-center">
@@ -24,12 +52,12 @@ export default function Page() {
         <Controls
           difficulty={difficulty}
           mode={mode}
-          onDifficultyChange={setDifficulty}
+          onDifficultyChange={handleDifficultyChange}
           onModeChange={setMode}
         />
       </div>
 
-      <Passage />
+      <Passage text={passage.text} />
       {/* <Results /> */}
     </main>
   );
