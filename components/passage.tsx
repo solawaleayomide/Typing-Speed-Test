@@ -1,12 +1,14 @@
-const text = "The sun rose over the quiet town.";
+type PassageProps = {
+  text: string;
+};
 
-export function Passage() {
+export default function Passage({ text }: PassageProps) {
   return (
     <section tabIndex={0} className="w-full max-w-5xl px-4 py-10 outline-none">
       <div className="text-lg leading-relaxed font-mono flex flex-wrap gap-[1px]">
         {text.split("").map((char, index) => (
           <span key={index} className="text-neutral-400">
-            {char}
+            {char === " " ? "\u00A0" : char}
           </span>
         ))}
       </div>
