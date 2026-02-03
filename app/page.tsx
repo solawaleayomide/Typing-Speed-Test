@@ -24,6 +24,9 @@ export default function Page() {
     accuracy: 100,
     elapsedMs: 0,
   });
+  const [testStatus, setTestStatus] = useState<"idle" | "running" | "finished">(
+    "idle",
+  );
 
   const difficultyMap = {
     Easy: "easy",
@@ -63,10 +66,18 @@ export default function Page() {
           mode={mode}
           onDifficultyChange={handleDifficultyChange}
           onModeChange={setMode}
+          disabled={testStatus === "running"}
         />
       </div>
 
-      <Passage key={passage.id} text={passage.text} onStatsChange={setStats} />
+      <Passage
+        key={passage.id}
+        text={passage.text}
+        onStatsChange={setStats}
+        mode={mode}
+        onTestStart={() => setTestStatus("running")}
+        onTestFinish={() => setTestStatus("finished")}
+      />
       {/* <Results /> */}
     </main>
   );

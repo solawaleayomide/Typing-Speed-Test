@@ -1,20 +1,39 @@
+"use client";
+
 import { useEffect, useState } from "react";
 
 type PassageProps = {
   text: string;
+  mode: "Timed (60s)" | "Passage";
   onStatsChange: (stats: {
     wpm: number;
     accuracy: number;
     elapsedMs: number;
   }) => void;
+  onTestStart?: () => void;
+  onTestFinish?: () => void;
 };
 
-export default function Passage({ text, onStatsChange }: PassageProps) {
+const TIME_LIMIT_MS = 60_000;
+
+export default function Passage({
+  text,
+  mode,
+  onStatsChange,
+  onTestStart,
+  onTestFinish,
+}: PassageProps) {
+  // typing state
   const [input, setInput] = useState("");
   const [cursorIndex, setCursorIndex] = useState(0);
   const [errors, setErrors] = useState<Set<number>>(new Set());
+
+  // timing state
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
+
+  /* -------------------- derived stats (PURE) -------------------- */
 
   const totalTyped = input.length;
   const errorCount = errors.size;
@@ -29,34 +48,56 @@ export default function Passage({ text, onStatsChange }: PassageProps) {
   const wpm =
     elapsedMinutes > 0 ? Math.round(totalTyped / 5 / elapsedMinutes) : 0;
 
+  const displayElapsedMs =
+    mode === "Timed (60s)" ? Math.max(TIME_LIMIT_MS - elapsedMs, 0) : elapsedMs;
+
+  /* -------------------- timer (SINGLE effect) -------------------- */
+
   useEffect(() => {
     if (startTime === null) return;
+    if (isFinished) return;
 
     const interval = setInterval(() => {
-      setElapsedMs(Date.now() - startTime);
-    }, 1000);
+      const elapsed = Date.now() - startTime;
+
+      if (mode === "Timed (60s)" && elapsed >= TIME_LIMIT_MS) {
+        setElapsedMs(TIME_LIMIT_MS);
+        setIsFinished(true);
+        onTestFinish?.();
+        clearInterval(interval);
+        return;
+      }
+
+      setElapsedMs(elapsed);
+    }, 250);
 
     return () => clearInterval(interval);
-  }, [startTime]);
+  }, [startTime, isFinished, mode, onTestFinish]);
+
+  /* -------------------- sync stats to parent -------------------- */
 
   useEffect(() => {
     onStatsChange({
       wpm,
       accuracy,
-      elapsedMs,
+      elapsedMs: displayElapsedMs,
     });
-  }, [wpm, accuracy, elapsedMs, onStatsChange]);
+  }, [wpm, accuracy, displayElapsedMs, onStatsChange]);
+
+  /* -------------------- input handling -------------------- */
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+    if (isFinished) return;
+
     const key = e.key;
 
     // start timer on first key press
     if (startTime === null) {
-      const now = Date.now();
-      setStartTime(now);
+      setStartTime(Date.now());
+      onTestStart?.();
     }
 
-    // BACKSPACE
+    // backspace
     if (key === "Backspace") {
       if (cursorIndex === 0) return;
 
@@ -65,13 +106,12 @@ export default function Passage({ text, onStatsChange }: PassageProps) {
       return;
     }
 
-    // Ignore non-character keys for now
+    // ignore non-character keys
     if (key.length !== 1) return;
 
-    // Prevent typing beyond passage length
+    // prevent typing beyond passage
     if (cursorIndex >= text.length) return;
 
-    // Record error if incorrect (and never remove it)
     const expectedChar = text[cursorIndex];
 
     if (key !== expectedChar) {
@@ -83,17 +123,30 @@ export default function Passage({ text, onStatsChange }: PassageProps) {
     }
 
     setInput((prev) => prev + key);
-    setCursorIndex((prev) => prev + 1);
+
+    setCursorIndex((prev) => {
+      const next = prev + 1;
+
+      // passage mode completion
+      if (mode === "Passage" && next >= text.length) {
+        setIsFinished(true);
+        onTestFinish?.();
+      }
+
+      return next;
+    });
   }
+
+  /* -------------------- rendering helpers -------------------- */
 
   function getCharStatus(index: number) {
     if (index < input.length) {
-      if (errors.has(index)) return "incorrect";
-      return "correct";
+      return errors.has(index) ? "incorrect" : "correct";
     }
-
     return "pending";
   }
+
+  /* -------------------- render -------------------- */
 
   return (
     <section
@@ -109,11 +162,11 @@ export default function Passage({ text, onStatsChange }: PassageProps) {
             <span
               key={index}
               className={`
-          ${status === "correct" && "text-green-400"}
-          ${status === "incorrect" && "text-red-400 underline"}
-          ${status === "pending" && "text-neutral-400"}
-           ${index === cursorIndex && "border-l-2 border-blue-400"}
-        `}
+                ${status === "correct" && "text-green-400"}
+                ${status === "incorrect" && "text-red-400 underline"}
+                ${status === "pending" && "text-neutral-400"}
+                ${index === cursorIndex && "border-l-2 border-blue-400"}
+              `}
             >
               {char === " " ? "\u00A0" : char}
             </span>
@@ -121,14 +174,11 @@ export default function Passage({ text, onStatsChange }: PassageProps) {
         })}
       </div>
 
-      <div className="mt-10 flex flex-col items-center gap-3">
-        <button className="px-6 py-2 rounded-md bg-blue-600 hover:bg-blue-500 transition">
-          Start Typing Test
-        </button>
-        <p className="text-sm text-neutral-400">
-          Or click the text and start typing
-        </p>
-      </div>
+      {isFinished && (
+        <div className="mt-8 text-center text-blue-400 font-semibold">
+          Test complete
+        </div>
+      )}
     </section>
   );
 }
