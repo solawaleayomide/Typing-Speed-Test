@@ -1,16 +1,60 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PassageProps = {
   text: string;
+  onStatsChange: (stats: {
+    wpm: number;
+    accuracy: number;
+    elapsedMs: number;
+  }) => void;
 };
 
-export default function Passage({ text }: PassageProps) {
+export default function Passage({ text, onStatsChange }: PassageProps) {
   const [input, setInput] = useState("");
   const [cursorIndex, setCursorIndex] = useState(0);
   const [errors, setErrors] = useState<Set<number>>(new Set());
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  const totalTyped = input.length;
+  const errorCount = errors.size;
+
+  const accuracy =
+    totalTyped === 0
+      ? 100
+      : Math.round(((totalTyped - errorCount) / totalTyped) * 100);
+
+  const elapsedMinutes = elapsedMs / 1000 / 60;
+
+  const wpm =
+    elapsedMinutes > 0 ? Math.round(totalTyped / 5 / elapsedMinutes) : 0;
+
+  useEffect(() => {
+    if (startTime === null) return;
+
+    const interval = setInterval(() => {
+      setElapsedMs(Date.now() - startTime);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  useEffect(() => {
+    onStatsChange({
+      wpm,
+      accuracy,
+      elapsedMs,
+    });
+  }, [wpm, accuracy, elapsedMs, onStatsChange]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
     const key = e.key;
+
+    // start timer on first key press
+    if (startTime === null) {
+      const now = Date.now();
+      setStartTime(now);
+    }
 
     // BACKSPACE
     if (key === "Backspace") {
