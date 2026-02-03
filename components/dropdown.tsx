@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 
 type Option<T> = {
@@ -7,60 +6,75 @@ type Option<T> = {
   value: T;
 };
 
-type Props<T extends string> = {
-  options: Option<T>[];
+type MobileDropdownProps<T> = {
   value: T;
+  options: Option<T>[];
   onChange: (value: T) => void;
+  disabled?: boolean;
 };
 
-export function MobileDropdown<T extends string>({
-  options,
+export function MobileDropdown<T>({
   value,
+  options,
   onChange,
-}: Props<T>) {
+  disabled = false,
+}: MobileDropdownProps<T>) {
   const [open, setOpen] = useState(false);
+
+  function handleSelect(option: Option<T>) {
+    if (disabled) return;
+
+    onChange(option.value);
+    setOpen(false);
+  }
 
   return (
     <div className="relative w-full">
       {/* Trigger */}
       <button
-        onClick={() => setOpen(!open)}
-        className="w-full bg-neutral-900 border border-neutral-700 rounded-md px-3 py-2 text-sm flex justify-between items-center"
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((prev) => !prev)}
+        className={`w-full rounded-md border border-neutral-700 px-3 py-2 text-left text-sm
+          ${
+            disabled
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:border-neutral-500"
+          }
+        `}
       >
-        <span>{value}</span>
-        <span className="text-neutral-400">▼</span>
+        {options.find((o) => o.value === value)?.label}
       </button>
 
       {/* Options */}
-      {open && (
-        <div className="absolute z-10 mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-900 shadow-lg overflow-hidden">
+      {open && !disabled && (
+        <div className="absolute z-10 mt-2 w-full rounded-md border border-neutral-700 bg-neutral-900 shadow-lg">
           {options.map((option) => {
             const isActive = option.value === value;
 
             return (
               <button
-                key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-2 text-sm text-left
+                key={String(option.value)}
+                type="button"
+                onClick={() => handleSelect(option)}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-sm text-left
                   ${
                     isActive
-                      ? "bg-blue-600/20 text-blue-400"
+                      ? "bg-neutral-800 text-blue-400"
                       : "text-neutral-300 hover:bg-neutral-800"
-                  }`}
+                  }
+                `}
               >
-                {/* Radio */}
+                {/* radio indicator */}
                 <span
-                  className={`w-3 h-3 rounded-full border flex items-center justify-center
-                      ${isActive ? "border-blue-400" : "border-neutral-500"}`}
-                >
-                  {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                  )}
-                </span>
-
+                  className={`h-3 w-3 rounded-full border
+                    ${
+                      isActive
+                        ? "border-blue-400 bg-blue-400"
+                        : "border-neutral-500"
+                    }
+                  `}
+                />
                 {option.label}
               </button>
             );
