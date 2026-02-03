@@ -8,7 +8,6 @@ const Passage = dynamic(() => import("@/components/passage"), {
 
 import { Controls } from "@/components/controls";
 import { Header } from "@/components/header";
-// import { Passage } from "@/components/passage";
 import { StatsBar } from "@/components/stats-bar";
 import { useState } from "react";
 
@@ -20,6 +19,11 @@ export type Mode = "Timed (60s)" | "Passage";
 export default function Page() {
   const [difficulty, setDifficulty] = useState<Difficulty>("Hard");
   const [mode, setMode] = useState<Mode>("Timed (60s)");
+  const [stats, setStats] = useState({
+    wpm: 0,
+    accuracy: 100,
+    elapsedMs: 0,
+  });
 
   const difficultyMap = {
     Easy: "easy",
@@ -47,7 +51,12 @@ export default function Page() {
       <Header />
 
       <div className="w-full max-w-6xl px-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <StatsBar />
+        <StatsBar
+          wpm={stats.wpm}
+          accuracy={stats.accuracy}
+          elapsedMs={stats.elapsedMs}
+        />
+
         <div className="h-px bg-neutral-800 md:hidden" />
         <Controls
           difficulty={difficulty}
@@ -57,7 +66,7 @@ export default function Page() {
         />
       </div>
 
-      <Passage text={passage.text} />
+      <Passage key={passage.id} text={passage.text} onStatsChange={setStats} />
       {/* <Results /> */}
     </main>
   );
