@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-export function Header() {
+export function Header({ wpm }: { wpm: number }) {
   return (
     <header className="w-full max-w-6xl flex justify-between items-center py-6 px-4 mb-6">
       <Image
@@ -30,7 +30,7 @@ export function Header() {
         <span>
           <span className="hidden md:inline">Personal best:</span>
           <span className="md:hidden">Best:</span>
-          <span className="font-medium text-neutral-100"> 92 WPM</span>
+          <span className="font-medium text-neutral-100"> 92</span>
         </span>
       </div>
     </header>

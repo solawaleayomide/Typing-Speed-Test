@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+/* -------------------- types -------------------- */
+
 type PassageProps = {
   text: string;
   mode: "Timed (60s)" | "Passage";
@@ -9,12 +11,16 @@ type PassageProps = {
     wpm: number;
     accuracy: number;
     elapsedMs: number;
+    correctChars: number;
+    incorrectChars: number;
   }) => void;
   onTestStart?: () => void;
   onTestFinish?: () => void;
 };
 
 const TIME_LIMIT_MS = 60_000;
+
+/* -------------------- component -------------------- */
 
 export default function Passage({
   text,
@@ -23,13 +29,13 @@ export default function Passage({
   onTestStart,
   onTestFinish,
 }: PassageProps) {
-  /* -------------------- typing state -------------------- */
+  /* ---------- typing state ---------- */
 
   const [input, setInput] = useState("");
   const [cursorIndex, setCursorIndex] = useState(0);
   const [errors, setErrors] = useState<Set<number>>(new Set());
 
-  /* -------------------- timing state -------------------- */
+  /* ---------- timing state ---------- */
 
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -53,19 +59,21 @@ export default function Passage({
   const displayElapsedMs =
     mode === "Timed (60s)" ? Math.max(TIME_LIMIT_MS - elapsedMs, 0) : elapsedMs;
 
-  /* -------------------- SINGLE timer effect -------------------- */
+  /* -------------------- TIMER EFFECT -------------------- */
+  /* Stops instantly if passage finishes */
 
   useEffect(() => {
     if (startTime === null) return;
-    if (isFinished) return;
+    if (isFinished) return; // 🚨 stops timer immediately
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
 
-      // Timed mode completion
+      /* timed completion */
       if (mode === "Timed (60s)" && elapsed >= TIME_LIMIT_MS) {
         setElapsedMs(TIME_LIMIT_MS);
         setIsFinished(true);
+        onTestFinish?.();
         clearInterval(interval);
         return;
       }
@@ -74,40 +82,34 @@ export default function Passage({
     }, 250);
 
     return () => clearInterval(interval);
-  }, [startTime, isFinished, mode]);
+  }, [startTime, isFinished, mode, onTestFinish]);
 
-  /* -------------------- sync stats to parent -------------------- */
+  /* -------------------- SYNC STATS -------------------- */
 
   useEffect(() => {
     onStatsChange({
       wpm,
       accuracy,
       elapsedMs: displayElapsedMs,
+      correctChars: totalTyped - errorCount,
+      incorrectChars: errorCount,
     });
-  }, [wpm, accuracy, displayElapsedMs, onStatsChange]);
+  }, [wpm, accuracy, displayElapsedMs, totalTyped, errorCount, onStatsChange]);
 
-  /* -------------------- notify parent when finished -------------------- */
-
-  useEffect(() => {
-    if (!isFinished) return;
-
-    onTestFinish?.();
-  }, [isFinished, onTestFinish]);
-
-  /* -------------------- input handling -------------------- */
+  /* -------------------- INPUT HANDLING -------------------- */
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
     if (isFinished) return;
 
     const key = e.key;
 
-    // start timer on first key press
+    /* start timer */
     if (startTime === null) {
       setStartTime(Date.now());
       onTestStart?.();
     }
 
-    // BACKSPACE
+    /* BACKSPACE */
     if (key === "Backspace") {
       if (cursorIndex === 0) return;
 
@@ -116,15 +118,15 @@ export default function Passage({
       return;
     }
 
-    // ignore non-character keys
+    /* ignore non-chars */
     if (key.length !== 1) return;
 
-    // prevent typing beyond passage
+    /* prevent overflow */
     if (cursorIndex >= text.length) return;
 
     const expectedChar = text[cursorIndex];
 
-    // record persistent error
+    /* record persistent error */
     if (key !== expectedChar) {
       setErrors((prev) => {
         const next = new Set(prev);
@@ -133,21 +135,23 @@ export default function Passage({
       });
     }
 
+    /* append input */
     setInput((prev) => prev + key);
 
-    setCursorIndex((prev) => {
-      const next = prev + 1;
+    /* ---------- COMPLETION DETECTION ---------- */
 
-      // Passage mode completion
-      if (mode === "Passage" && next >= text.length) {
-        setIsFinished(true);
-      }
+    const nextIndex = cursorIndex + 1;
 
-      return next;
-    });
+    /* passage completion overrides timer */
+    if (!isFinished && nextIndex >= text.length) {
+      setIsFinished(true);
+      onTestFinish?.();
+    }
+
+    setCursorIndex(nextIndex);
   }
 
-  /* -------------------- rendering helpers -------------------- */
+  /* -------------------- RENDER HELPERS -------------------- */
 
   function getCharStatus(index: number) {
     if (index < input.length) {
@@ -156,7 +160,7 @@ export default function Passage({
     return "pending";
   }
 
-  /* -------------------- render -------------------- */
+  /* -------------------- RENDER -------------------- */
 
   return (
     <section
@@ -184,13 +188,6 @@ export default function Passage({
           );
         })}
       </div>
-
-      {/* Completion message */}
-      {isFinished && (
-        <div className="mt-8 text-center text-blue-400 font-semibold">
-          Test complete
-        </div>
-      )}
     </section>
   );
 }
