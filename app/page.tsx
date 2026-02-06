@@ -93,7 +93,7 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col items-center">
-      <Header wpm={stats.wpm} />
+      <Header />
 
       {testStatus === "finished" ? (
         <Results
