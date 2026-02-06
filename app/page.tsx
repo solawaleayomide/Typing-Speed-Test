@@ -27,6 +27,7 @@ export default function Page() {
   const [testStatus, setTestStatus] = useState<"idle" | "running" | "finished">(
     "idle",
   );
+  const [restartKey, setRestartKey] = useState(0);
 
   const difficultyMap = {
     Easy: "easy",
@@ -39,6 +40,8 @@ export default function Page() {
     return Math.floor(Math.random() * passages[key].length);
   });
 
+  const passage = passages[difficultyMap[difficulty]][passageIndex];
+
   function handleDifficultyChange(next: Difficulty) {
     const key = difficultyMap[next];
     const index = Math.floor(Math.random() * passages[key].length);
@@ -47,7 +50,15 @@ export default function Page() {
     setPassageIndex(index);
   }
 
-  const passage = passages[difficultyMap[difficulty]][passageIndex];
+  function handleRestart() {
+    setRestartKey((prev) => prev + 1);
+    setStats({
+      wpm: 0,
+      accuracy: 100,
+      elapsedMs: 0,
+    });
+    setTestStatus("idle");
+  }
 
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col items-center">
@@ -71,13 +82,22 @@ export default function Page() {
       </div>
 
       <Passage
-        key={passage.id}
+        key={`${passage.id}-${restartKey}`}
         text={passage.text}
-        onStatsChange={setStats}
         mode={mode}
+        onStatsChange={setStats}
         onTestStart={() => setTestStatus("running")}
         onTestFinish={() => setTestStatus("finished")}
       />
+
+      <button
+        onClick={handleRestart}
+        disabled={testStatus === "idle"}
+        className="mt-6 rounded-md border border-neutral-700 px-4 py-2 text-sm
+             hover:border-neutral-500 disabled:opacity-50"
+      >
+        Restart
+      </button>
       {/* <Results /> */}
     </main>
   );

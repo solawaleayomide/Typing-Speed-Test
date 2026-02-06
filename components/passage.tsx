@@ -23,12 +23,14 @@ export default function Passage({
   onTestStart,
   onTestFinish,
 }: PassageProps) {
-  // typing state
+  /* -------------------- typing state -------------------- */
+
   const [input, setInput] = useState("");
   const [cursorIndex, setCursorIndex] = useState(0);
   const [errors, setErrors] = useState<Set<number>>(new Set());
 
-  // timing state
+  /* -------------------- timing state -------------------- */
+
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
@@ -51,7 +53,7 @@ export default function Passage({
   const displayElapsedMs =
     mode === "Timed (60s)" ? Math.max(TIME_LIMIT_MS - elapsedMs, 0) : elapsedMs;
 
-  /* -------------------- timer (SINGLE effect) -------------------- */
+  /* -------------------- SINGLE timer effect -------------------- */
 
   useEffect(() => {
     if (startTime === null) return;
@@ -60,10 +62,10 @@ export default function Passage({
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
 
+      // Timed mode completion
       if (mode === "Timed (60s)" && elapsed >= TIME_LIMIT_MS) {
         setElapsedMs(TIME_LIMIT_MS);
         setIsFinished(true);
-        onTestFinish?.();
         clearInterval(interval);
         return;
       }
@@ -72,7 +74,7 @@ export default function Passage({
     }, 250);
 
     return () => clearInterval(interval);
-  }, [startTime, isFinished, mode, onTestFinish]);
+  }, [startTime, isFinished, mode]);
 
   /* -------------------- sync stats to parent -------------------- */
 
@@ -83,6 +85,14 @@ export default function Passage({
       elapsedMs: displayElapsedMs,
     });
   }, [wpm, accuracy, displayElapsedMs, onStatsChange]);
+
+  /* -------------------- notify parent when finished -------------------- */
+
+  useEffect(() => {
+    if (!isFinished) return;
+
+    onTestFinish?.();
+  }, [isFinished, onTestFinish]);
 
   /* -------------------- input handling -------------------- */
 
@@ -97,7 +107,7 @@ export default function Passage({
       onTestStart?.();
     }
 
-    // backspace
+    // BACKSPACE
     if (key === "Backspace") {
       if (cursorIndex === 0) return;
 
@@ -114,6 +124,7 @@ export default function Passage({
 
     const expectedChar = text[cursorIndex];
 
+    // record persistent error
     if (key !== expectedChar) {
       setErrors((prev) => {
         const next = new Set(prev);
@@ -127,10 +138,9 @@ export default function Passage({
     setCursorIndex((prev) => {
       const next = prev + 1;
 
-      // passage mode completion
+      // Passage mode completion
       if (mode === "Passage" && next >= text.length) {
         setIsFinished(true);
-        onTestFinish?.();
       }
 
       return next;
@@ -154,6 +164,7 @@ export default function Passage({
       onKeyDown={handleKeyDown}
       className="w-full max-w-5xl px-4 py-10 outline-none"
     >
+      {/* Passage text */}
       <div className="text-lg leading-relaxed font-mono flex flex-wrap gap-[1px]">
         {text.split("").map((char, index) => {
           const status = getCharStatus(index);
@@ -174,6 +185,7 @@ export default function Passage({
         })}
       </div>
 
+      {/* Completion message */}
       {isFinished && (
         <div className="mt-8 text-center text-blue-400 font-semibold">
           Test complete
