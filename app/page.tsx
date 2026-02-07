@@ -14,8 +14,6 @@ const Passage = dynamic(() => import("@/components/passage"), {
   ssr: false,
 });
 
-/* -------------------- types -------------------- */
-
 export type Difficulty = "Easy" | "Medium" | "Hard";
 export type Mode = "Timed (60s)" | "Passage";
 
@@ -27,10 +25,8 @@ type Stats = {
   incorrectChars: number;
 };
 
-/* -------------------- page -------------------- */
-
 export default function Page() {
-  /* state */
+  // State
 
   const [difficulty, setDifficulty] = useState<Difficulty>("Hard");
 
@@ -50,7 +46,7 @@ export default function Page() {
 
   const [restartKey, setRestartKey] = useState(0);
 
-  /* passage selection */
+  // Passage selection logic
 
   const difficultyMap = {
     Easy: "easy",
@@ -65,7 +61,7 @@ export default function Page() {
 
   const passage = passages[difficultyMap[difficulty]][passageIndex];
 
-  /* handlers */
+  // Handlers
 
   function handleDifficultyChange(next: Difficulty) {
     const key = difficultyMap[next];
@@ -89,8 +85,6 @@ export default function Page() {
     setTestStatus("idle");
   }
 
-  /* render */
-
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col items-center">
       <Header />
@@ -105,7 +99,6 @@ export default function Page() {
         />
       ) : (
         <>
-          {/* Top bar */}
           <div className="w-full max-w-6xl px-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <StatsBar
               wpm={stats.wpm}
@@ -124,24 +117,25 @@ export default function Page() {
             />
           </div>
 
-          {/* Passage */}
           <Passage
             key={`${passage.id}-${restartKey}`}
             text={passage.text}
             mode={mode}
+            testStatus={testStatus}
             onStatsChange={setStats}
             onTestStart={() => setTestStatus("running")}
             onTestFinish={() => setTestStatus("finished")}
           />
 
-          {/* Restart */}
-          <button
-            onClick={handleRestart}
-            disabled={testStatus === "idle"}
-            className="mt-6 rounded-md border border-neutral-700 px-4 py-2 text-sm hover:border-neutral-500 disabled:opacity-50"
-          >
-            Restart
-          </button>
+          {testStatus === "running" && (
+            <button
+              onClick={handleRestart}
+              disabled={testStatus !== "running"}
+              className="mt-6 rounded-md border border-neutral-700 px-4 py-2 text-sm hover:border-neutral-500 disabled:opacity-50"
+            >
+              Restart
+            </button>
+          )}
         </>
       )}
     </main>

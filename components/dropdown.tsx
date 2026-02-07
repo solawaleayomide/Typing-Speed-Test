@@ -30,7 +30,6 @@ export function MobileDropdown<T>({
 
   return (
     <div className="relative w-full">
-      {/* Trigger */}
       <button
         type="button"
         disabled={disabled}
@@ -46,7 +45,6 @@ export function MobileDropdown<T>({
         {options.find((o) => o.value === value)?.label}
       </button>
 
-      {/* Options */}
       {open && !disabled && (
         <div className="absolute z-10 mt-2 w-full rounded-md border border-neutral-700 bg-neutral-900 shadow-lg">
           {options.map((option) => {
@@ -65,7 +63,6 @@ export function MobileDropdown<T>({
                   }
                 `}
               >
-                {/* radio indicator */}
                 <span
                   className={`h-3 w-3 rounded-full border
                     ${

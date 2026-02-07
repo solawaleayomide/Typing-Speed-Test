@@ -4,8 +4,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 
-/* -------------------- types -------------------- */
-
 type ResultsProps = {
   wpm: number;
   accuracy: number;
@@ -15,8 +13,6 @@ type ResultsProps = {
 };
 
 const STORAGE_KEY = "typing-personal-best";
-
-/* -------------------- component -------------------- */
 
 export function Results({
   wpm,
@@ -33,12 +29,9 @@ export function Results({
 
   const [best, setBest] = useState<number | null>(null);
 
-  /* ---------- personal best logic ---------- */
-
   useEffect(() => {
     const storedBest = localStorage.getItem(STORAGE_KEY);
 
-    /* First ever test */
     if (!storedBest) {
       localStorage.setItem(STORAGE_KEY, String(wpm));
       setBest(wpm);
@@ -53,7 +46,6 @@ export function Results({
     const bestScore = Number(storedBest);
     setBest(bestScore);
 
-    /* New high score */
     if (wpm > bestScore) {
       localStorage.setItem(STORAGE_KEY, String(wpm));
       setBest(wpm);
@@ -67,14 +59,10 @@ export function Results({
     }
   }, [wpm]);
 
-  /* -------------------- render -------------------- */
-
   return (
     <div className="mt-2 w-full max-w-3xl p-6 text-center flex flex-col items-center gap-4">
-      {/* Icon */}
       <Image src={logo} alt="Icon Completed" width={60} height={60} />
 
-      {/* Title + subtitle */}
       <div>
         <h2 className="text-[2rem] font-semibold text-neutral-100">
           {message}
@@ -83,7 +71,6 @@ export function Results({
         <p className="text-sm text-neutral-500">{subMessage}</p>
       </div>
 
-      {/* Stats grid */}
       <div className="mt-6 grid grid-cols-1 w-full md:grid-cols-3 gap-4 text-sm">
         <Stat label="WPM" value={wpm} />
 
@@ -105,7 +92,6 @@ export function Results({
         />
       </div>
 
-      {/* Restart */}
       <button
         onClick={onRestart}
         className="mt-8 rounded-md bg-white px-6 py-2 text-sm font-semibold text-neutral-950 hover:bg-opacity-80 transition"
@@ -115,8 +101,6 @@ export function Results({
     </div>
   );
 }
-
-/* -------------------- stat card -------------------- */
 
 function Stat({
   label,
