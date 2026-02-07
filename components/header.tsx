@@ -3,14 +3,13 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-/* storage key shared with Results */
+// Key used for localStorage to save the user's personal best WPM
 const STORAGE_KEY = "typing-personal-best";
 
 export function Header() {
   const [best, setBest] = useState<number | null>(null);
 
-  /* ---------- load best score ---------- */
-
+  // Load the personal best from localStorage on component mount and listen for updates
   useEffect(() => {
     function loadBest() {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -20,16 +19,14 @@ export function Header() {
       }
     }
 
-    /* initial load */
+    // Initial load of personal best
     loadBest();
 
-    /* listen for updates from Results */
+    // Listen for custom events that indicate the personal best has been updated
     window.addEventListener("personal-best-updated", loadBest);
 
     return () => window.removeEventListener("personal-best-updated", loadBest);
   }, []);
-
-  /* -------------------- render -------------------- */
 
   return (
     <header className="w-full max-w-6xl flex justify-between items-center py-6 px-4 mb-6">
@@ -61,12 +58,11 @@ export function Header() {
         />
 
         <span>
-          <span className="hidden md:inline">Personal best:</span>
+          <span className="hidden md:inline">Personal best: </span>
 
-          <span className="md:hidden">Best:</span>
+          <span className="md:hidden">Best: </span>
 
           <span className="font-medium text-neutral-100">
-            {" "}
             {best ?? "--"} WPM
           </span>
         </span>
