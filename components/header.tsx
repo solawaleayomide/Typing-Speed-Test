@@ -29,7 +29,7 @@ export function Header() {
   }, []);
 
   return (
-    <header className="w-full max-w-6xl flex justify-between items-center py-6 px-4 mb-6">
+    <header className="  w-full max-w-6xl flex justify-between items-center py-6 px-4 mb-6">
       {/* Logo desktop */}
       <Image
         src="/logo-large.svg"

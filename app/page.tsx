@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
 
 import { Header } from "@/components/header";
 import { Controls } from "@/components/controls";
@@ -9,6 +8,7 @@ import { StatsBar } from "@/components/stats-bar";
 import { Results } from "@/components/results";
 
 import passages from "@/data.json";
+import { useState } from "react";
 
 const Passage = dynamic(() => import("@/components/passage"), {
   ssr: false,
