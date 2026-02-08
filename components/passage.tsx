@@ -148,10 +148,10 @@ export default function Passage({
     return "pending";
   }
 
-  const containerRef = useRef<HTMLElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function handleStartClick() {
-    containerRef.current?.focus();
+    inputRef.current?.focus();
 
     if (startTime === null) {
       setStartTime(Date.now());
@@ -162,9 +162,9 @@ export default function Passage({
   return (
     <>
       <section
-        ref={containerRef}
+        // ref={containerRef}
+        // onKeyDown={handleKeyDown}
         tabIndex={0}
-        onKeyDown={handleKeyDown}
         className="relative w-full max-w-5xl px-4 py-10 outline-none"
       >
         {/* Passage text */}
@@ -193,6 +193,15 @@ export default function Passage({
             );
           })}
         </div>
+
+        <input
+          ref={inputRef}
+          className="absolute opacity-0 pointer-events-none"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          onKeyDown={handleKeyDown}
+        />
       </section>
       {testStatus === "idle" && <Overlay handleStartClick={handleStartClick} />}
     </>
