@@ -149,6 +149,7 @@ export default function Passage({
   }
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
 
   function handleStartClick() {
     inputRef.current?.focus();
@@ -162,8 +163,8 @@ export default function Passage({
   return (
     <>
       <section
-        // ref={containerRef}
         // onKeyDown={handleKeyDown}
+        ref={containerRef}
         tabIndex={0}
         className="relative w-full max-w-5xl px-4 py-10 outline-none"
       >
