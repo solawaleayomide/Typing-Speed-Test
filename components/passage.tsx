@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Overlay } from "./overlay";
 
+/* -------------------- types -------------------- */
+
 type PassageProps = {
   text: string;
   mode: "Timed (60s)" | "Passage";
@@ -20,6 +22,8 @@ type PassageProps = {
 
 const TIME_LIMIT_MS = 60_000;
 
+/* -------------------- component -------------------- */
+
 export default function Passage({
   text,
   mode,
@@ -28,13 +32,24 @@ export default function Passage({
   onTestFinish,
   testStatus,
 }: PassageProps) {
+  /* ---------- typing state ---------- */
+
   const [input, setInput] = useState("");
   const [cursorIndex, setCursorIndex] = useState(0);
   const [errors, setErrors] = useState<Set<number>>(new Set());
 
+  /* ---------- timing state ---------- */
+
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+
+  /* ---------- refs ---------- */
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
+
+  /* -------------------- derived stats -------------------- */
 
   const totalTyped = input.length;
   const errorCount = errors.size;
@@ -51,6 +66,8 @@ export default function Passage({
 
   const displayElapsedMs =
     mode === "Timed (60s)" ? Math.max(TIME_LIMIT_MS - elapsedMs, 0) : elapsedMs;
+
+  /* -------------------- timer -------------------- */
 
   useEffect(() => {
     if (startTime === null) return;
@@ -73,7 +90,8 @@ export default function Passage({
     return () => clearInterval(interval);
   }, [startTime, isFinished, mode, onTestFinish]);
 
-  // sync stats to parent on every change (wpm, accuracy, elapsed time, correct chars, incorrect chars)
+  /* -------------------- sync stats -------------------- */
+
   useEffect(() => {
     onStatsChange({
       wpm,
@@ -84,37 +102,32 @@ export default function Passage({
     });
   }, [wpm, accuracy, displayElapsedMs, totalTyped, errorCount, onStatsChange]);
 
-  // Handles all key presses during the test, including starting the test on the first key press, updating input and cursor position, and recording errors for incorrect characters. Also handles backspace for corrections.
-  function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+  /* -------------------- mobile input handler -------------------- */
+
+  function handleInputChange(value: string) {
     if (isFinished) return;
 
-    const key = e.key;
-
-    // Start the timer on the first key press
+    /* start timer */
     if (startTime === null) {
       setStartTime(Date.now());
       onTestStart?.();
     }
 
-    // Handle backspace: remove last character and move cursor back
-    if (key === "Backspace") {
-      if (cursorIndex === 0) return;
-
-      setInput((prev) => prev.slice(0, -1));
-      setCursorIndex((prev) => prev - 1);
+    /* detect backspace */
+    if (value.length < input.length) {
+      setInput(value);
+      setCursorIndex(value.length);
       return;
     }
 
-    // Ignore non-character keys (e.g., Shift, Ctrl, Alt, etc.)
-    if (key.length !== 1) return;
+    const newChar = value[value.length - 1];
+    if (!newChar) return;
 
-    // If the cursor is at or beyond the end of the text, ignore further input
     if (cursorIndex >= text.length) return;
 
     const expectedChar = text[cursorIndex];
 
-    // If the typed key doesn't match the expected character, record an error for the current index
-    if (key !== expectedChar) {
+    if (newChar !== expectedChar) {
       setErrors((prev) => {
         const next = new Set(prev);
         next.add(cursorIndex);
@@ -122,14 +135,9 @@ export default function Passage({
       });
     }
 
-    // Append the new character to the input and move the cursor forward
-    setInput((prev) => prev + key);
-
-    // Complete char-by-char input and move cursor forward
+    setInput(value);
 
     const nextIndex = cursorIndex + 1;
-
-    // If the next index is at the end of the passage, mark as finished
 
     if (!isFinished && nextIndex >= text.length) {
       setIsFinished(true);
@@ -139,16 +147,52 @@ export default function Passage({
     setCursorIndex(nextIndex);
   }
 
-  // Render helpers
+  /* -------------------- desktop keyboard handler -------------------- */
 
-  function getCharStatus(index: number) {
-    if (index < input.length) {
-      return errors.has(index) ? "incorrect" : "correct";
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (isFinished) return;
+
+    const key = e.key;
+
+    if (startTime === null) {
+      setStartTime(Date.now());
+      onTestStart?.();
     }
-    return "pending";
+
+    if (key === "Backspace") {
+      if (cursorIndex === 0) return;
+
+      setInput((prev) => prev.slice(0, -1));
+      setCursorIndex((prev) => prev - 1);
+      return;
+    }
+
+    if (key.length !== 1) return;
+    if (cursorIndex >= text.length) return;
+
+    const expectedChar = text[cursorIndex];
+
+    if (key !== expectedChar) {
+      setErrors((prev) => {
+        const next = new Set(prev);
+        next.add(cursorIndex);
+        return next;
+      });
+    }
+
+    setInput((prev) => prev + key);
+
+    const nextIndex = cursorIndex + 1;
+
+    if (!isFinished && nextIndex >= text.length) {
+      setIsFinished(true);
+      onTestFinish?.();
+    }
+
+    setCursorIndex(nextIndex);
   }
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  /* -------------------- start handler -------------------- */
 
   function handleStartClick() {
     inputRef.current?.focus();
@@ -159,21 +203,44 @@ export default function Passage({
     }
   }
 
+  /* -------------------- render helpers -------------------- */
+
+  function getCharStatus(index: number) {
+    if (index < input.length) {
+      return errors.has(index) ? "incorrect" : "correct";
+    }
+    return "pending";
+  }
+
+  /* -------------------- render -------------------- */
+
   return (
     <>
       <section
-        // ref={containerRef}
-        // onKeyDown={handleKeyDown}
-        tabIndex={0}
+        ref={containerRef}
+        onClick={() => inputRef.current?.focus()}
         className="relative w-full max-w-5xl px-4 py-10 outline-none"
       >
+        {/* Hidden typing input */}
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="absolute opacity-0"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          inputMode="text"
+        />
+
         {/* Passage text */}
         <div
           className={`
-        text-lg leading-relaxed font-mono flex flex-wrap gap-1px
-        transition
-        ${testStatus === "idle" ? "blur-sm" : ""}
-      `}
+            text-lg leading-relaxed font-mono flex flex-wrap gap-[1px]
+            transition
+            ${testStatus === "idle" ? "blur-sm" : ""}
+          `}
         >
           {text.split("").map((char, index) => {
             const status = getCharStatus(index);
@@ -182,27 +249,20 @@ export default function Passage({
               <span
                 key={index}
                 className={`
-              ${status === "correct" && "text-green-400"}
-              ${status === "incorrect" && "text-red-400 underline"}
-              ${status === "pending" && "text-neutral-400"}
-              ${index === cursorIndex && "border-l-2 border-blue-400"}
-            `}
+                  ${status === "correct" && "text-green-400"}
+                  ${status === "incorrect" && "text-red-400 underline"}
+                  ${status === "pending" && "text-neutral-400"}
+                  ${index === cursorIndex && "border-l-2 border-blue-400"}
+                `}
               >
                 {char === " " ? "\u00A0" : char}
               </span>
             );
           })}
         </div>
-
-        <input
-          ref={inputRef}
-          className="absolute opacity-0 pointer-events-none"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-          onKeyDown={handleKeyDown}
-        />
       </section>
+
+      {/* Overlay */}
       {testStatus === "idle" && <Overlay handleStartClick={handleStartClick} />}
     </>
   );
